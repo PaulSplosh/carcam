@@ -15,8 +15,6 @@ import java.util.List;
 //import java.util.Timer;
 import java.util.TimerTask;
 
-import com.mikk36.carcam2.R;
-
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -428,8 +426,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private void writeNmeaLog() {
 		try {
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
 			if (mediaStorageDir.canWrite()) {
 				String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
 				File nmeaFile = new File(mediaStorageDir.getPath() + File.separator + "xNMEA_" + timeStamp + ".log");
@@ -462,8 +459,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		// reInstatePreview();
 
 		if (!prepareMediaRecorder()) {
-			Toast.makeText(CarcamActivity.this, "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG)
-					.show();
+			Toast.makeText(CarcamActivity.this, "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG).show();
 		}
 
 		mediaRecorder.start();
@@ -535,7 +531,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	//
 	// releaseCamera();
 	// if (!prepareMediaRecorder()) {
-	// Toast.makeText(Carcam2Activity.this, "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG)
+	// Toast.makeText(Carcam2Activity.this,
+	// "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG)
 	// .show();
 	// }
 	// mediaRecorder.start();
@@ -554,9 +551,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	}
 
 	private boolean prepareMediaRecorder() {
-		cleanData.cleanup(
-				new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam"),
-				maxDataStoreSize);
+		cleanData.cleanup(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam"), maxDataStoreSize);
 		mediaRecorder = new MediaRecorder();
 
 		mediaRecorder.setOnErrorListener(instance);
@@ -627,7 +622,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		Log.log("Output file: '" + outputFile + "'");
 		mediaRecorder.setOutputFile(outputFile);
 		// mediaRecorder.setMaxDuration(60 * 60 * 1000); // Set max duration 60
-		// // minutes
+		// minutes
 		mediaRecorder.setMaxDuration(settings.getMaxLength());
 		mediaRecorder.setMaxFileSize(3758096384l); // Set max file size
 
@@ -703,14 +698,14 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	}
 
 	private File getOutputMediaFile() {
-		// To be safe, you should check that the SDCard is mounted
-		// using Environment.getExternalStorageState() before doing this.
+		// To be safe, you should check that the SDCard is mounted using
+		// Environment.getExternalStorageState() before doing this.
 		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
 
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			// This location works best if you want the created images to be shared
-			// between applications and persist after your app has been uninstalled.
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
+			// This location works best if you want the created images to be
+			// shared between applications and persist after your app has been
+			// uninstalled.
 
 			// Create the storage directory if it does not exist
 			if (!mediaStorageDir.exists()) {
@@ -865,8 +860,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 		float[] distances = new float[3];
 		params.getFocusDistances(distances);
-		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-				+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 				+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 
 		myCamera.setParameters(params);
@@ -874,8 +868,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		params = myCamera.getParameters();
 		distances = new float[3];
 		params.getFocusDistances(distances);
-		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-				+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 				+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 
 		if (focusMode == Camera.Parameters.FOCUS_MODE_INFINITY || focusMode == Camera.Parameters.FOCUS_MODE_FIXED) {
@@ -891,8 +884,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			Camera.Parameters params = myCamera.getParameters();
 			float[] distances = new float[3];
 			params.getFocusDistances(distances);
-			Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-					+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+			Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 					+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 			myCamera.takePicture(null, null, mPicture);
 		}
@@ -903,10 +895,10 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		public void onPictureTaken(byte[] data, Camera camera) {
 			Log.log("Got image!");
 
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			// This location works best if you want the created images to be shared
-			// between applications and persist after your app has been uninstalled.
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
+			// This location works best if you want the created images to be
+			// shared between applications and persist after your app has been
+			// uninstalled.
 
 			// Create the storage directory if it does not exist
 			if (!mediaStorageDir.exists()) {
@@ -917,8 +909,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 			// Create a media file name
 			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-			File imageFile = new File(mediaStorageDir.getPath() + File.separator + "IMG_" + timeStamp + "_"
-					+ pictureSeriesNumber + ".jpg");
+			File imageFile = new File(mediaStorageDir.getPath() + File.separator + "IMG_" + timeStamp + "_" + pictureSeriesNumber + ".jpg");
 
 			try {
 				FileOutputStream fos = new FileOutputStream(imageFile);
