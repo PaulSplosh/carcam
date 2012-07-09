@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="hello">Hello World, Carcam2Activity!</string>
+    <string name="app_name">Carcam</string>
+    <string name="rec">REC</string>
+    <string name="stop">STOP</string>
+    <string name="speed_unit">km/h</string>
+    <string name="satellites">Satelliite:</string>
+    <string name="accuracy">Täpsus:</string>
+
+</resources>
