@@ -53,9 +53,9 @@ public class GPXWriter {
 		timestampFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
 
 		pw = new PrintWriter(out);
-		trackName = "Carcam tracklog";
+		trackName = new SimpleDateFormat("HH:mm:ss dd.MM.yyyy").format(new Date());
 		trackDescription = "Carcam tracklog starting at "
-				+ new SimpleDateFormat("HH:mm:ss dd.MMyyyy").format(new Date());
+				+ new SimpleDateFormat("HH:mm:ss dd.MM.yyyy").format(new Date());
 	}
 
 	private String formatLocation(LocationCombined location) {
