@@ -66,6 +66,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private boolean bluetoothOldStatus;
 
+	private GPXWriter gpxWriter;
+	private LocationCombined location;
 	// private Timer nmeaTimer;
 
 	private static long maxDataStoreSize;
@@ -118,6 +120,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			switch (event) {
 			case GpsStatus.GPS_EVENT_FIRST_FIX:
 				Log.log("onGpsStatusChanged: First Fix");
+				gpxWriter.writeBeginTrack();
+				gpxWriter.writeOpenSegment();
 				break;
 			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
 				status = locationManager.getGpsStatus(status);
@@ -142,6 +146,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				}
 				Log.log("Satellites: " + satelliteNumbers);
 				satellites = null;
+				satellitesIterator = null;
+
 				TextView satelliteText = (TextView) findViewById(R.id.satelliteText);
 				String satelliteTextNew = "" + satellitesUsed;
 				if (satellitesUsedGLONASS > 0) {
@@ -258,6 +264,14 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			myButton.setOnClickListener(myButtonOnClickListener);
 		}
 
+		FileOutputStream gpxOutput = null;
+		try {
+			gpxOutput = new FileOutputStream(getGPXOutputFile());
+		} catch (FileNotFoundException e) {
+			Log.log("Could not get GPX file: " + e.getMessage());
+		}
+		location = new LocationCombined();
+		gpxWriter = new GPXWriter(gpxOutput, location);
 		// nmeaHandler = new NmeaHandler();
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Log.log("Registering GpsStatus Listener");
@@ -585,16 +599,41 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			}
 
 			// Create a media file name
-			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 			String extension = "3gp";
 			if (settings.getVideoEnabled()) {
 				extension = "mp4";
 			}
-			File mediaFile = new File(mediaStorageDir.getPath() + File.separator + "VID_" + timeStamp + "." + extension);
+			File mediaFile = new File(mediaStorageDir.getPath() + File.separator + "VID_" + baseFileName() + "."
+					+ extension);
 
 			return mediaFile;
 		}
 		return null;
+	}
+
+	private File getGPXOutputFile() {
+		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+					"Carcam");
+			if (!mediaStorageDir.exists()) {
+				if (!mediaStorageDir.mkdirs()) {
+					return null;
+				}
+			}
+
+			// Create a media file name
+			String extension = "gpx";
+			File file = new File(mediaStorageDir.getPath() + File.separator + "xGPX_" + baseFileName() + "."
+					+ extension);
+
+			return file;
+		}
+		return null;
+	}
+
+	private String baseFileName() {
+		return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	}
 
 	class CleanData {
