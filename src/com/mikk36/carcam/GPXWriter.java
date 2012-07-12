@@ -54,11 +54,13 @@ public class GPXWriter {
 
 		pw = new PrintWriter(out);
 		trackName = "Carcam tracklog";
-		trackDescription = "Carcam tracklog starting at " + new SimpleDateFormat("HH:mm:ss dd.MMyyyy").format(new Date());
+		trackDescription = "Carcam tracklog starting at "
+				+ new SimpleDateFormat("HH:mm:ss dd.MMyyyy").format(new Date());
 	}
 
 	private String formatLocation(LocationCombined location) {
-		return "lat=\"" + coordinateFormatter.format(location.getLatitude()) + "\" lon=\"" + coordinateFormatter.format(location.getLongitude()) + "\"";
+		return "lat=\"" + coordinateFormatter.format(location.getLatitude()) + "\" lon=\""
+				+ coordinateFormatter.format(location.getLongitude()) + "\"";
 	}
 
 	public void writeHeader() {
