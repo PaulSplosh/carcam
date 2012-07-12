@@ -11,7 +11,6 @@ import java.util.TimeZone;
 
 public class GPXWriter {
 
-	// writer.prepare(track, output);
 	// writer.writeBeginTrack(location1);
 	// writer.writeOpenSegment();
 	// writer.writeLocation(location1);
@@ -33,7 +32,6 @@ public class GPXWriter {
 	private final NumberFormat coordinateFormatter;
 	private final SimpleDateFormat timestampFormatter;
 	private PrintWriter pw = null;
-	private LocationCombined location;
 
 	private String trackName;
 	private String trackDescription;
@@ -41,7 +39,7 @@ public class GPXWriter {
 	private Boolean trackOpen = false;
 	private Boolean segmentOpen = false;
 
-	public GPXWriter(OutputStream out, LocationCombined loc) {
+	public GPXWriter(OutputStream out) {
 		elevationFormatter = NumberFormat.getInstance(Locale.US);
 		elevationFormatter.setMaximumFractionDigits(1);
 		elevationFormatter.setGroupingUsed(false);
@@ -55,15 +53,12 @@ public class GPXWriter {
 		timestampFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
 
 		pw = new PrintWriter(out);
-		location = loc;
 		trackName = "Carcam tracklog";
-		trackDescription = "Carcam tracklog starting at "
-				+ new SimpleDateFormat("HH:mm:ss dd.MMyyyy").format(new Date());
+		trackDescription = "Carcam tracklog starting at " + new SimpleDateFormat("HH:mm:ss dd.MMyyyy").format(new Date());
 	}
 
-	private String formatLocation() {
-		return "lat=\"" + coordinateFormatter.format(location.getLatitude()) + "\" lon=\""
-				+ coordinateFormatter.format(location.getLongitude()) + "\"";
+	private String formatLocation(LocationCombined location) {
+		return "lat=\"" + coordinateFormatter.format(location.getLatitude()) + "\" lon=\"" + coordinateFormatter.format(location.getLongitude()) + "\"";
 	}
 
 	public void writeHeader() {
@@ -83,6 +78,12 @@ public class GPXWriter {
 		}
 	}
 
+	public void writeFooter() {
+		if (pw != null) {
+			pw.println("</gpx>");
+		}
+	}
+
 	public void writeBeginTrack() {
 		if (pw != null && !trackOpen) {
 			pw.println("<trk>");
@@ -90,33 +91,38 @@ public class GPXWriter {
 			pw.println("<desc>" + stringAsCData(trackDescription) + "</desc>");
 			pw.println("<number>1</number>");
 			pw.println("<extensions><topografix:color>c0c0c0</topografix:color></extensions>");
+			trackOpen = true;
 		}
 	}
 
 	public void writeEndTrack() {
 		if (pw != null && trackOpen) {
 			pw.println("</trk>");
+			trackOpen = false;
 		}
 	}
 
 	public void writeOpenSegment() {
 		if (trackOpen && !segmentOpen) {
 			pw.println("<trkseg>");
+			segmentOpen = true;
 		}
 	}
 
 	public void writeCloseSegment() {
 		if (trackOpen && segmentOpen) {
 			pw.println("</trkseg>");
+			segmentOpen = false;
 		}
 	}
 
-	public void writeLocation() {
+	public void writeLocation(LocationCombined location) {
 		if (pw != null && trackOpen && segmentOpen) {
-			pw.println("<trkpt " + formatLocation() + ">");
+			pw.println("<trkpt " + formatLocation(location) + ">");
 			Date d = new Date(location.getTime());
 			pw.println("<ele>" + elevationFormatter.format(location.getAltitude()) + "</ele>");
 			pw.println("<time>" + timestampFormatter.format(d) + "</time>");
+			pw.println("<sat>" + location.getSatelliteCount() + "</sat>");
 			pw.println("</trkpt>");
 		}
 	}

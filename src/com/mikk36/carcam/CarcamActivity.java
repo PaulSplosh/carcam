@@ -66,7 +66,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private boolean bluetoothOldStatus;
 
-	private GPXWriter gpxWriter;
 	private LocationCombined location;
 	// private Timer nmeaTimer;
 
@@ -81,21 +80,23 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	// private NmeaHandler nmeaHandler;
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
-		public void onLocationChanged(Location location) {
+		public void onLocationChanged(Location loc) {
+			location.updateLocation(loc);
+
 			TextView speedText = (TextView) findViewById(R.id.speedText);
 			String logText = "";
-			if (location.hasSpeed()) {
-				logText += "Speed: " + location.getSpeed() + "m/s";
-				speedText.setText("" + Math.round(location.getSpeed() * 3.6f));
+			if (loc.hasSpeed()) {
+				logText += "Speed: " + loc.getSpeed() + "m/s";
+				speedText.setText("" + Math.round(loc.getSpeed() * 3.6f));
 			} else {
 				logText += "Speed: n/a";
 				speedText.setText("n/a");
 			}
 			logText += ", ";
 			TextView accuracyText = (TextView) findViewById(R.id.accuracyText);
-			if (location.hasAccuracy()) {
-				logText += "Accuracy: " + location.getAccuracy();
-				accuracyText.setText("" + location.getAccuracy() + " m");
+			if (loc.hasAccuracy()) {
+				logText += "Accuracy: " + loc.getAccuracy();
+				accuracyText.setText("" + loc.getAccuracy() + " m");
 			} else {
 				logText += "Accuracy: n/a";
 				accuracyText.setText("n/a");
@@ -120,8 +121,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			switch (event) {
 			case GpsStatus.GPS_EVENT_FIRST_FIX:
 				Log.log("onGpsStatusChanged: First Fix");
-				gpxWriter.writeBeginTrack();
-				gpxWriter.writeOpenSegment();
+				location.updateFirstFix();
 				break;
 			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
 				status = locationManager.getGpsStatus(status);
@@ -134,8 +134,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				while (satellitesIterator.hasNext()) {
 					GpsSatellite gpsSatellite = (GpsSatellite) satellitesIterator.next();
 
-					satelliteNumbers = satelliteNumbers + gpsSatellite.getPrn() + ":"
-							+ Math.round(gpsSatellite.getSnr()) + ", ";
+					satelliteNumbers = satelliteNumbers + gpsSatellite.getPrn() + ":" + Math.round(gpsSatellite.getSnr()) + ", ";
 					if (gpsSatellite.usedInFix()) {
 						satellitesUsed++;
 						if (gpsSatellite.getPrn() >= 65 && gpsSatellite.getPrn() <= 96) {
@@ -145,6 +144,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 					}
 				}
 				Log.log("Satellites: " + satelliteNumbers);
+				location.updateSatellites(satellitesUsed);
+
 				satellites = null;
 				satellitesIterator = null;
 
@@ -157,9 +158,11 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				break;
 			case GpsStatus.GPS_EVENT_STARTED:
 				Log.log("onGpsStatusChanged: Started");
+				location.startGPX();
 				break;
 			case GpsStatus.GPS_EVENT_STOPPED:
 				Log.log("onGpsStatusChanged: Stopped");
+				location.stopGPX();
 				break;
 			}
 		}
@@ -270,8 +273,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		} catch (FileNotFoundException e) {
 			Log.log("Could not get GPX file: " + e.getMessage());
 		}
-		location = new LocationCombined();
-		gpxWriter = new GPXWriter(gpxOutput, location);
+		location = new LocationCombined(gpxOutput);
 		// nmeaHandler = new NmeaHandler();
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Log.log("Registering GpsStatus Listener");
@@ -281,7 +283,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		Log.log("Registering Location Updates");
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 		// nmeaTimer = new Timer();
-		// nmeaTimer.scheduleAtFixedRate(new NmeaWriter(), nmeaLength, nmeaLength);
+		// nmeaTimer.scheduleAtFixedRate(new NmeaWriter(), nmeaLength,
+		// nmeaLength);
 	}
 
 	public void onResume() {
@@ -305,12 +308,15 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		super.onPause();
 
 		if (settings.getRecordingEnabled()) {
-			releaseMediaRecorder(); // if you are using MediaRecorder, release it first
+			releaseMediaRecorder(); // if you are using MediaRecorder, release
+									// it first
 			if (settings.getVideoEnabled()) {
-				releaseCamera(); // release the camera immediately on pause event
+				releaseCamera(); // release the camera immediately on pause
+									// event
 			}
 		}
 
+		location.stopGPX();
 		// locationManager.removeNmeaListener(nmeaListener);
 		locationManager.removeGpsStatusListener(gpsStatusListener);
 		locationManager.removeUpdates(locationListener);
@@ -374,8 +380,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private void writeNmeaLog() {
 		try {
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
 			if (mediaStorageDir.canWrite()) {
 				String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
 				File nmeaFile = new File(mediaStorageDir.getPath() + File.separator + "xNMEA_" + timeStamp + ".log");
@@ -406,8 +411,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		releaseCamera();
 
 		if (!prepareMediaRecorder()) {
-			Toast.makeText(CarcamActivity.this, "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG)
-					.show();
+			Toast.makeText(CarcamActivity.this, "Fail in prepareMediaRecorder()!\n - Ended -", Toast.LENGTH_LONG).show();
 		}
 
 		mediaRecorder.start();
@@ -478,9 +482,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	}
 
 	private boolean prepareMediaRecorder() {
-		cleanData.cleanup(
-				new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam"),
-				maxDataStoreSize);
+		cleanData.cleanup(new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam"), maxDataStoreSize);
 		mediaRecorder = new MediaRecorder();
 
 		mediaRecorder.setOnErrorListener(instance);
@@ -582,13 +584,14 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	}
 
 	private File getOutputMediaFile() {
-		// To be safe, you should check that the SDCard is mounted using Environment.getExternalStorageState() before
+		// To be safe, you should check that the SDCard is mounted using
+		// Environment.getExternalStorageState() before
 		// doing this.
 		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
 
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			// This location works best if you want the created images to be shared between applications and persist
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
+			// This location works best if you want the created images to be
+			// shared between applications and persist
 			// after your app has been uninstalled.
 
 			// Create the storage directory if it does not exist
@@ -603,8 +606,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			if (settings.getVideoEnabled()) {
 				extension = "mp4";
 			}
-			File mediaFile = new File(mediaStorageDir.getPath() + File.separator + "VID_" + baseFileName() + "."
-					+ extension);
+			File mediaFile = new File(mediaStorageDir.getPath() + File.separator + "VID_" + baseFileName() + "." + extension);
 
 			return mediaFile;
 		}
@@ -614,8 +616,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	private File getGPXOutputFile() {
 		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
 
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
 			if (!mediaStorageDir.exists()) {
 				if (!mediaStorageDir.mkdirs()) {
 					return null;
@@ -624,8 +625,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 			// Create a media file name
 			String extension = "gpx";
-			File file = new File(mediaStorageDir.getPath() + File.separator + "xGPX_" + baseFileName() + "."
-					+ extension);
+			File file = new File(mediaStorageDir.getPath() + File.separator + "xGPX_" + baseFileName() + "." + extension);
 
 			return file;
 		}
@@ -738,8 +738,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 		float[] distances = new float[3];
 		params.getFocusDistances(distances);
-		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-				+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 				+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 
 		myCamera.setParameters(params);
@@ -747,8 +746,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		params = myCamera.getParameters();
 		distances = new float[3];
 		params.getFocusDistances(distances);
-		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-				+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+		Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 				+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 
 		if (focusMode == Camera.Parameters.FOCUS_MODE_INFINITY || focusMode == Camera.Parameters.FOCUS_MODE_FIXED) {
@@ -764,8 +762,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			Camera.Parameters params = myCamera.getParameters();
 			float[] distances = new float[3];
 			params.getFocusDistances(distances);
-			Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", "
-					+ distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
+			Log.log("Focus distances: " + distances[Camera.Parameters.FOCUS_DISTANCE_NEAR_INDEX] + ", " + distances[Camera.Parameters.FOCUS_DISTANCE_OPTIMAL_INDEX] + ", "
 					+ distances[Camera.Parameters.FOCUS_DISTANCE_FAR_INDEX]);
 			myCamera.takePicture(null, null, mPicture);
 		}
@@ -776,8 +773,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		public void onPictureTaken(byte[] data, Camera camera) {
 			Log.log("Got image!");
 
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Carcam");
 
 			// Create the storage directory if it does not exist
 			if (!mediaStorageDir.exists()) {
@@ -788,8 +784,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 			// Create a media file name
 			String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-			File imageFile = new File(mediaStorageDir.getPath() + File.separator + "IMG_" + timeStamp + "_"
-					+ pictureSeriesNumber + ".jpg");
+			File imageFile = new File(mediaStorageDir.getPath() + File.separator + "IMG_" + timeStamp + "_" + pictureSeriesNumber + ".jpg");
 
 			try {
 				FileOutputStream fos = new FileOutputStream(imageFile);
