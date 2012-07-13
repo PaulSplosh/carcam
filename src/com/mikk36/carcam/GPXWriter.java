@@ -30,6 +30,7 @@ public class GPXWriter {
 
 	private final NumberFormat elevationFormatter;
 	private final NumberFormat coordinateFormatter;
+	private final NumberFormat speedFormatter;
 	private final SimpleDateFormat timestampFormatter;
 	private PrintWriter pw = null;
 
@@ -48,6 +49,10 @@ public class GPXWriter {
 		coordinateFormatter.setMaximumFractionDigits(5);
 		coordinateFormatter.setMaximumIntegerDigits(3);
 		coordinateFormatter.setGroupingUsed(false);
+
+		speedFormatter = NumberFormat.getInstance(Locale.US);
+		speedFormatter.setMaximumFractionDigits(1);
+		speedFormatter.setGroupingUsed(false);
 
 		timestampFormatter = new SimpleDateFormat(TIMESTAMP_FORMAT);
 		timestampFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -122,9 +127,14 @@ public class GPXWriter {
 		if (pw != null && trackOpen && segmentOpen) {
 			pw.println("<trkpt " + formatLocation(location) + ">");
 			Date d = new Date(location.getTime());
-			pw.println("<ele>" + elevationFormatter.format(location.getAltitude()) + "</ele>");
+			if (location.getAltitude() != null) {
+				pw.println("<ele>" + elevationFormatter.format(location.getAltitude()) + "</ele>");
+			}
 			pw.println("<time>" + timestampFormatter.format(d) + "</time>");
 			pw.println("<sat>" + location.getSatelliteCount() + "</sat>");
+			if (location.getSpeed() != null) {
+				pw.println("<speed>" + speedFormatter.format(location.getSpeed()) + "</speed>");
+			}
 			pw.println("</trkpt>");
 		}
 	}

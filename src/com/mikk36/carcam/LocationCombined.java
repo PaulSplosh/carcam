@@ -14,8 +14,9 @@ public class LocationCombined {
 
 	private double latitude;
 	private double longitude;
-	private double altitude;
+	private Object altitude;
 	private long time;
+	private Object speed;
 	private int satelliteCount;
 
 	private static final int TYPE_LOCATION = 0;
@@ -49,13 +50,24 @@ public class LocationCombined {
 		longitude = loc.getLongitude();
 		if (loc.hasAltitude()) {
 			altitude = loc.getAltitude();
+		} else {
+			altitude = false;
 		}
 		time = loc.getTime();
+		if (loc.hasSpeed()) {
+			speed = loc.getSpeed();
+		} else {
+			speed = false;
+		}
+
+		// TODO: Add bearing
 
 		writePoint(TYPE_LOCATION);
 	}
 
 	public void updateSatellites(int count) {
+		// TODO: rewrite to get from Location
+
 		// Log.log(TAG, "Updating satellite count");
 		statusTime = System.nanoTime();
 		haveStatus = true;
@@ -113,7 +125,7 @@ public class LocationCombined {
 		return longitude;
 	}
 
-	public double getAltitude() {
+	public Object getAltitude() {
 		return altitude;
 	}
 
@@ -123,5 +135,9 @@ public class LocationCombined {
 
 	public int getSatelliteCount() {
 		return satelliteCount;
+	}
+
+	public Object getSpeed() {
+		return speed;
 	}
 }
