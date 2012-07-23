@@ -66,7 +66,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private boolean bluetoothOldStatus;
 
-	private LocationCombined location;
 	// private Timer nmeaTimer;
 
 	private static long maxDataStoreSize;
@@ -81,8 +80,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
 		public void onLocationChanged(Location loc) {
-			location.updateLocation(loc);
-
 			TextView speedText = (TextView) findViewById(R.id.speedText);
 			String logText = "";
 			if (loc.hasSpeed()) {
@@ -121,7 +118,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			switch (event) {
 			case GpsStatus.GPS_EVENT_FIRST_FIX:
 				Log.log("onGpsStatusChanged: First Fix");
-				location.updateFirstFix();
 				break;
 			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
 				status = locationManager.getGpsStatus(status);
@@ -145,7 +141,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 					}
 				}
 				Log.log("Satellites: " + satelliteNumbers);
-				location.updateSatellites(satellitesUsed);
 
 				satellites = null;
 				satellitesIterator = null;
@@ -159,11 +154,9 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				break;
 			case GpsStatus.GPS_EVENT_STARTED:
 				Log.log("onGpsStatusChanged: Started");
-				location.startGPX();
 				break;
 			case GpsStatus.GPS_EVENT_STOPPED:
 				Log.log("onGpsStatusChanged: Stopped");
-				location.stopGPX();
 				break;
 			}
 		}
@@ -268,13 +261,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			myButton.setOnClickListener(myButtonOnClickListener);
 		}
 
-		FileOutputStream gpxOutput = null;
-		try {
-			gpxOutput = new FileOutputStream(getGPXOutputFile());
-		} catch (FileNotFoundException e) {
-			Log.log("Could not get GPX file: " + e.getMessage());
-		}
-		location = new LocationCombined(gpxOutput);
 		// nmeaHandler = new NmeaHandler();
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Log.log("Registering GpsStatus Listener");
@@ -317,7 +303,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			}
 		}
 
-		location.stopGPX();
 		// locationManager.removeNmeaListener(nmeaListener);
 		locationManager.removeGpsStatusListener(gpsStatusListener);
 		locationManager.removeUpdates(locationListener);
@@ -616,27 +601,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 					+ extension);
 
 			return mediaFile;
-		}
-		return null;
-	}
-
-	private File getGPXOutputFile() {
-		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
-
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			if (!mediaStorageDir.exists()) {
-				if (!mediaStorageDir.mkdirs()) {
-					return null;
-				}
-			}
-
-			// Create a media file name
-			String extension = "gpx";
-			File file = new File(mediaStorageDir.getPath() + File.separator + "xGPX_" + baseFileName() + "."
-					+ extension);
-
-			return file;
 		}
 		return null;
 	}

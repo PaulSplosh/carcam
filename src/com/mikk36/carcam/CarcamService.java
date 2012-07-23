@@ -2,12 +2,15 @@ package com.mikk36.carcam;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -15,6 +18,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Camera;
+import android.location.GpsSatellite;
 import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
@@ -49,10 +53,11 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 	// GPS stuff
 	private ArrayList<String> nmeaLog = new ArrayList<String>();
 	private static final int nmeaLength = 5 * 1000;
+	private LocationCombined location;
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
-
-		public void onLocationChanged(Location location) {
+		public void onLocationChanged(Location loc) {
+			location.updateLocation(loc);
 		}
 
 		public void onProviderDisabled(String provider) {
@@ -65,11 +70,43 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		}
 	};
 
-	GpsStatus.NmeaListener nmeaListener = new GpsStatus.NmeaListener() {
+	GpsStatus.Listener gpsStatusListener = new GpsStatus.Listener() {
+		private GpsStatus status;
 
-		public void onNmeaReceived(long timestamp, String nmea) {
-			// log("NMEA received at " + timestamp + ": " + nmea);
-			nmeaLog.add(nmea);
+		public void onGpsStatusChanged(int event) {
+			switch (event) {
+			case GpsStatus.GPS_EVENT_FIRST_FIX:
+				Log.log("onGpsStatusChanged: First Fix");
+				location.updateFirstFix();
+				break;
+			case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
+				Log.log(TAG, "GPS status update");
+				status = locationManager.getGpsStatus(status);
+				Iterable<GpsSatellite> satellites = status.getSatellites();
+				Iterator<GpsSatellite> satellitesIterator = satellites.iterator();
+
+				int satellitesUsed = 0;
+				while (satellitesIterator.hasNext()) {
+					GpsSatellite gpsSatellite = (GpsSatellite) satellitesIterator.next();
+
+					if (gpsSatellite.usedInFix()) {
+						satellitesUsed++;
+					}
+				}
+				location.updateSatellites(satellitesUsed);
+
+				satellites = null;
+				satellitesIterator = null;
+				break;
+			case GpsStatus.GPS_EVENT_STARTED:
+				Log.log("onGpsStatusChanged: Started");
+				location.startGPX();
+				break;
+			case GpsStatus.GPS_EVENT_STOPPED:
+				Log.log("onGpsStatusChanged: Stopped");
+				location.stopGPX();
+				break;
+			}
 		}
 	};
 
@@ -94,6 +131,23 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		Log.log(TAG, "Service created");
 		super.onCreate();
 		instance = this;
+
+		FileOutputStream gpxOutput = null;
+		try {
+			gpxOutput = new FileOutputStream(getGPXOutputFile());
+		} catch (FileNotFoundException e) {
+			Log.log("Could not get GPX file: " + e.getMessage());
+		}
+
+		location = new LocationCombined(gpxOutput);
+		// nmeaHandler = new NmeaHandler();
+		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+		Log.log("Registering GpsStatus Listener");
+		locationManager.addGpsStatusListener(gpsStatusListener);
+		// Log.log("Registering NMEA Listener");
+		// locationManager.addNmeaListener(nmeaListener);
+		Log.log("Registering Location Updates");
+		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 	}
 
 	public int onStartCommand(Intent intent, int flags, int startId) {
@@ -123,7 +177,7 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-		locationManager.addNmeaListener(nmeaListener);
+		// locationManager.addNmeaListener(nmeaListener);
 		nmeaTimer = new Timer();
 		nmeaTimer.scheduleAtFixedRate(new NmeaWriter(), nmeaLength, nmeaLength);
 
@@ -168,6 +222,9 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 	public void onDestroy() {
 		super.onDestroy();
 
+		location.stopGPX();
+		locationManager.removeGpsStatusListener(gpsStatusListener);
+		locationManager.removeUpdates(locationListener);
 		Log.log(TAG, "Service destroyed");
 		CarcamActivity.serviceRunning = false;
 	}
@@ -397,5 +454,30 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		Log.log(TAG, "Video Info: " + whatText + ", " + extra);
 
 		releaseMediaRecorder();
+	}
+
+	private File getGPXOutputFile() {
+		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
+
+			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+					"Carcam");
+			if (!mediaStorageDir.exists()) {
+				if (!mediaStorageDir.mkdirs()) {
+					return null;
+				}
+			}
+
+			// Create a media file name
+			String extension = "gpx";
+			File file = new File(mediaStorageDir.getPath() + File.separator + "xGPX_" + baseFileName() + "."
+					+ extension);
+
+			return file;
+		}
+		return null;
+	}
+
+	private String baseFileName() {
+		return new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
 	}
 }
