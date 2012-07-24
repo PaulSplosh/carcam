@@ -31,6 +31,7 @@ public class GPXWriter {
 	private final NumberFormat elevationFormatter;
 	private final NumberFormat coordinateFormatter;
 	private final NumberFormat speedFormatter;
+	private final NumberFormat courseFormatter;
 	private final SimpleDateFormat timestampFormatter;
 	private PrintWriter pw = null;
 
@@ -53,6 +54,10 @@ public class GPXWriter {
 		speedFormatter = NumberFormat.getInstance(Locale.US);
 		speedFormatter.setMaximumFractionDigits(1);
 		speedFormatter.setGroupingUsed(false);
+
+		courseFormatter = NumberFormat.getInstance(Locale.US);
+		courseFormatter.setMaximumFractionDigits(1);
+		courseFormatter.setGroupingUsed(false);
 
 		timestampFormatter = new SimpleDateFormat(TIMESTAMP_FORMAT);
 		timestampFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -134,6 +139,9 @@ public class GPXWriter {
 			pw.println("<sat>" + location.getSatelliteCount() + "</sat>");
 			if (location.getSpeed() != null) {
 				pw.println("<speed>" + speedFormatter.format(location.getSpeed()) + "</speed>");
+			}
+			if (location.getBearing() != null) {
+				pw.println("<course>" + courseFormatter.format(location.getBearing()) + "</course>");
 			}
 			pw.println("</trkpt>");
 		}

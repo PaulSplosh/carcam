@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import android.location.Location;
 
 public class LocationCombined {
+	private Boolean gpxStarted;
 	private Boolean haveFirstFix;
 
 	private Boolean haveLocation;
@@ -17,6 +18,7 @@ public class LocationCombined {
 	private Object altitude;
 	private long time;
 	private Object speed;
+	private Object bearing;
 	private int satelliteCount;
 
 	private static final int TYPE_LOCATION = 0;
@@ -30,6 +32,7 @@ public class LocationCombined {
 
 	public LocationCombined(FileOutputStream out) {
 		Log.log(TAG, "LocationCombined created");
+		gpxStarted = false;
 		haveFirstFix = false;
 		haveLocation = false;
 		haveStatus = false;
@@ -41,6 +44,10 @@ public class LocationCombined {
 		// Log.log(TAG, "Updating location");
 		long tempLocationTime = System.nanoTime();
 		haveLocation = true;
+		if (!haveFirstFix) {
+			updateFirstFix();
+		}
+
 		if (tempLocationTime - locationTime > SEGMENT_PAUSE) {
 			writer.writeCloseSegment();
 			writer.writeOpenSegment();
@@ -51,16 +58,21 @@ public class LocationCombined {
 		if (loc.hasAltitude()) {
 			altitude = loc.getAltitude();
 		} else {
-			altitude = false;
+			altitude = null;
 		}
 		time = loc.getTime();
 		if (loc.hasSpeed()) {
 			speed = loc.getSpeed();
 		} else {
-			speed = false;
+			speed = null;
 		}
-
-		// TODO: Add bearing
+		if (loc.hasBearing()) {
+			bearing = loc.getBearing();
+			Log.log(TAG, "Bearing: " + bearing);
+		} else {
+			bearing = null;
+			Log.log(TAG, "Bearing: N/A");
+		}
 
 		writePoint(TYPE_LOCATION);
 	}
@@ -79,6 +91,10 @@ public class LocationCombined {
 	public void updateFirstFix() {
 		Log.log(TAG, "Updating first fix");
 		haveFirstFix = true;
+		if (!gpxStarted) {
+			startGPX();
+		}
+
 		writer.writeBeginTrack();
 		writer.writeOpenSegment();
 	}
@@ -86,6 +102,7 @@ public class LocationCombined {
 	public void startGPX() {
 		Log.log(TAG, "Starting GPX logging");
 		writer.writeHeader();
+		gpxStarted = true;
 	}
 
 	public void stopGPX() {
@@ -139,5 +156,9 @@ public class LocationCombined {
 
 	public Object getSpeed() {
 		return speed;
+	}
+
+	public Object getBearing() {
+		return bearing;
 	}
 }

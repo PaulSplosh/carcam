@@ -98,6 +98,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				logText += "Accuracy: n/a";
 				accuracyText.setText("n/a");
 			}
+
 			Log.log(logText);
 		}
 
