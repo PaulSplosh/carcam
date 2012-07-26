@@ -1,19 +1,13 @@
 package com.mikk36.carcam;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.Timer;
-import java.util.TimerTask;
-
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -42,17 +36,12 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 	private MediaRecorder mediaRecorder;
 	private MyCameraSurfaceView myCameraSurfaceView;
 
-	// private Timer recorderTimer;
-	private Timer nmeaTimer;
-
 	private static long maxDataStoreSize;
 	private CleanData cleanData;
 	private static int audioSource = MediaRecorder.AudioSource.DEFAULT;
 	private static int videoSource = MediaRecorder.VideoSource.CAMERA;
 
 	// GPS stuff
-	private ArrayList<String> nmeaLog = new ArrayList<String>();
-	private static final int nmeaLength = 5 * 1000;
 	private LocationCombined location;
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
@@ -140,12 +129,9 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		}
 
 		location = new LocationCombined(gpxOutput);
-		// nmeaHandler = new NmeaHandler();
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Log.log("Registering GpsStatus Listener");
 		locationManager.addGpsStatusListener(gpsStatusListener);
-		// Log.log("Registering NMEA Listener");
-		// locationManager.addNmeaListener(nmeaListener);
 		Log.log("Registering Location Updates");
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 	}
@@ -177,9 +163,6 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-		// locationManager.addNmeaListener(nmeaListener);
-		nmeaTimer = new Timer();
-		nmeaTimer.scheduleAtFixedRate(new NmeaWriter(), nmeaLength, nmeaLength);
 
 		if (settings.getVideoEnabled()) {
 			releaseCamera();
@@ -194,16 +177,13 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		} catch (IllegalStateException e) {
 			Log.log(TAG, "Mediarecorder start IllegalStateException: " + e.getMessage());
 		}
-		// recorderTimer = new Timer();
-		// recorderTimer.scheduleAtFixedRate(new restartRecorder(), settings.getMaxLength(),
-		// settings.getMaxLength());
+
 		Log.log(TAG, "Started recording");
 	}
 
 	public void stopRecording() {
 		Log.log(TAG, "Stopping recording");
 
-		// recorderTimer.cancel();
 		if (mediaRecorder != null) {
 			mediaRecorder.stop();
 			releaseMediaRecorder(); // if you are using MediaRecorder, release it first
@@ -213,9 +193,6 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		}
 
 		locationManager.removeUpdates(locationListener);
-		writeNmeaLog();
-		if (nmeaTimer != null)
-			nmeaTimer.cancel();
 		Log.log(TAG, "Stopped recording");
 	}
 
@@ -278,9 +255,6 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 			mediaRecorder.setAudioSource(audioSource);
 		}
 
-		// mediaRecorder.setProfile(CamcorderProfile
-		// .get(CamcorderProfile.QUALITY_HIGH));
-
 		if (settings.getVideoEnabled()) {
 			mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
 		} else {
@@ -333,62 +307,14 @@ public class CarcamService extends Service implements MediaRecorder.OnInfoListen
 		}
 	}
 
-	// class restartRecorder extends TimerTask {
-	//
-	// @Override
-	// public void run() {
-	// restartRecording();
-	// }
-	// }
-
-	// private void restartRecording() {
-	// Log.log(TAG, "I should restart recording now.");
-	// mediaRecorder.stop();
-	// releaseMediaRecorder();
-	//
-	// releaseCamera();
-	//
-	// // prepareMediaRecorder();
-	// // mediaRecorder.start();
-	// startRecording();
-	// }
-
-	class NmeaWriter extends TimerTask {
-		public void run() {
-			writeNmeaLog();
-		}
-	}
-
-	private void writeNmeaLog() {
-		try {
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			if (mediaStorageDir.canWrite()) {
-				String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
-				File nmeaFile = new File(mediaStorageDir.getPath() + File.separator + "xNMEA_" + timeStamp + ".log");
-				FileWriter nmeaWriter = new FileWriter(nmeaFile, true);
-				BufferedWriter out = new BufferedWriter(nmeaWriter);
-				while (nmeaLog.isEmpty() == false) {
-					out.append(nmeaLog.get(0));
-					nmeaLog.remove(0);
-				}
-				out.close();
-
-			}
-
-		} catch (IOException e) {
-			Log.log(TAG, "Could not write file " + e.getMessage());
-		}
-	}
-
 	private static File getOutputMediaFile() {
-		// To be safe, you should check that the SDCard is mounted
-		// using Environment.getExternalStorageState() before doing this.
+		// To be safe, you should check that the SDCard is mounted using Environment.getExternalStorageState() before
+		// doing this.
 
 		File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
 				"Carcam");
-		// This location works best if you want the created images to be shared
-		// between applications and persist after your app has been uninstalled.
+		// This location works best if you want the created images to be shared between applications and persist after
+		// your app has been uninstalled.
 
 		// Create the storage directory if it does not exist
 		if (!mediaStorageDir.exists()) {

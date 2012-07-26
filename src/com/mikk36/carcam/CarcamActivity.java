@@ -1,19 +1,14 @@
 package com.mikk36.carcam;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TimerTask;
-
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
@@ -66,17 +61,12 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 
 	private boolean bluetoothOldStatus;
 
-	// private Timer nmeaTimer;
-
 	private static long maxDataStoreSize;
 	private CleanData cleanData;
 	private static int audioSource = MediaRecorder.AudioSource.CAMCORDER;
 	private static int videoSource = MediaRecorder.VideoSource.CAMERA;
 
 	// GPS stuff
-	private ArrayList<String> nmeaLog = new ArrayList<String>();
-	// private static final int nmeaLength = 5 * 1000;
-	// private NmeaHandler nmeaHandler;
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
 		public void onLocationChanged(Location loc) {
@@ -163,20 +153,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		}
 	};
 
-	// GpsStatus.NmeaListener nmeaListener = new GpsStatus.NmeaListener() {
-	//
-	// public void onNmeaReceived(long timestamp, String nmea) {
-	// // log("NMEA received at " + timestamp + ": " + nmea);
-	// nmeaHandler.update(nmea);
-	// }
-	// };
-
-	class NmeaHandler {
-		public void update(String nmea) {
-			nmeaLog.add(nmea);
-		}
-	}
-
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -188,9 +164,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		settings = new Settings();
 
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-		// WindowManager.LayoutParams lp = getWindow().getAttributes();
-		// lp.buttonBrightness = (float) 1;
-		// getWindow().setAttributes(lp);
 
 		pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK, "Carcam");
@@ -262,17 +235,11 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			myButton.setOnClickListener(myButtonOnClickListener);
 		}
 
-		// nmeaHandler = new NmeaHandler();
 		locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Log.log("Registering GpsStatus Listener");
 		locationManager.addGpsStatusListener(gpsStatusListener);
-		// Log.log("Registering NMEA Listener");
-		// locationManager.addNmeaListener(nmeaListener);
 		Log.log("Registering Location Updates");
 		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-		// nmeaTimer = new Timer();
-		// nmeaTimer.scheduleAtFixedRate(new NmeaWriter(), nmeaLength,
-		// nmeaLength);
 	}
 
 	public void onResume() {
@@ -296,20 +263,14 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		super.onPause();
 
 		if (settings.getRecordingEnabled()) {
-			releaseMediaRecorder(); // if you are using MediaRecorder, release
-									// it first
+			releaseMediaRecorder(); // if you are using MediaRecorder, release it first
 			if (settings.getVideoEnabled()) {
-				releaseCamera(); // release the camera immediately on pause
-									// event
+				releaseCamera(); // release the camera immediately on pause event
 			}
 		}
 
-		// locationManager.removeNmeaListener(nmeaListener);
 		locationManager.removeGpsStatusListener(gpsStatusListener);
 		locationManager.removeUpdates(locationListener);
-		// writeNmeaLog();
-		// if (nmeaTimer != null)
-		// nmeaTimer.cancel();
 
 		if (settings.getRecordingEnabled() && recording && isFinishing() == false) {
 			serviceRunning = true;
@@ -356,34 +317,6 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 			Log.log("Should disable Bluetooth");
 			BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
 			btAdapter.disable();
-		}
-	}
-
-	class NmeaWriter extends TimerTask {
-		public void run() {
-			writeNmeaLog();
-		}
-	}
-
-	private void writeNmeaLog() {
-		try {
-			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-					"Carcam");
-			if (mediaStorageDir.canWrite()) {
-				String timeStamp = new SimpleDateFormat("yyyyMMdd").format(new Date());
-				File nmeaFile = new File(mediaStorageDir.getPath() + File.separator + "xNMEA_" + timeStamp + ".log");
-				FileWriter nmeaWriter = new FileWriter(nmeaFile, true);
-				BufferedWriter out = new BufferedWriter(nmeaWriter);
-				while (nmeaLog.isEmpty() == false) {
-					out.append(nmeaLog.get(0));
-					nmeaLog.remove(0);
-				}
-				out.close();
-
-			}
-
-		} catch (IOException e) {
-			Log.log("Could not write file " + e.getMessage());
 		}
 	}
 
@@ -575,15 +508,13 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	}
 
 	private File getOutputMediaFile() {
-		// To be safe, you should check that the SDCard is mounted using
-		// Environment.getExternalStorageState() before
+		// To be safe, you should check that the SDCard is mounted using Environment.getExternalStorageState() before
 		// doing this.
 		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
 
 			File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
 					"Carcam");
-			// This location works best if you want the created images to be
-			// shared between applications and persist
+			// This location works best if you want the created images to be shared between applications and persist
 			// after your app has been uninstalled.
 
 			// Create the storage directory if it does not exist

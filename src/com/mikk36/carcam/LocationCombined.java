@@ -1,7 +1,6 @@
 package com.mikk36.carcam;
 
 import java.io.FileOutputStream;
-
 import android.location.Location;
 
 public class LocationCombined {
@@ -78,8 +77,6 @@ public class LocationCombined {
 	}
 
 	public void updateSatellites(int count) {
-		// TODO: rewrite to get from Location
-
 		// Log.log(TAG, "Updating satellite count");
 		statusTime = System.nanoTime();
 		haveStatus = true;
