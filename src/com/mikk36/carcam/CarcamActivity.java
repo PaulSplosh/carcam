@@ -66,6 +66,8 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 	private static int audioSource = MediaRecorder.AudioSource.CAMCORDER;
 	private static int videoSource = MediaRecorder.VideoSource.CAMERA;
 
+	private String lastFileName = "";
+
 	// GPS stuff
 	private LocationManager locationManager;
 	private LocationListener locationListener = new LocationListener() {
@@ -328,7 +330,17 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		releaseMediaRecorder(); // release the MediaRecorder object
 	}
 
-	private void startRecording() {
+	private void stopRecording(Boolean noStop) {
+		reInstatePreview();
+
+		// stop recording and release camera
+		if (noStop == false) {
+			mediaRecorder.stop(); // stop the recording
+		}
+		releaseMediaRecorder(); // release the MediaRecorder object
+	}
+
+	private Boolean startRecording() {
 		releaseCamera();
 
 		if (!prepareMediaRecorder()) {
@@ -336,8 +348,17 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 					.show();
 		}
 
-		mediaRecorder.start();
+		try {
+			mediaRecorder.start();
+		} catch (IllegalStateException e) {
+			Log.log("MediaRecorder failed with: " + e.getMessage());
+			return false;
+		} catch (RuntimeException e) {
+			Log.log("MediaRecorder failed with RuntimeException: " + e.getMessage());
+			return false;
+		}
 		myCameraSurfaceView.setVisibility(MyCameraSurfaceView.GONE);
+		return true;
 	}
 
 	private long lastButtonClick = 0;
@@ -372,7 +393,15 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 				}
 				// Release Camera before MediaRecorder start
 
-				startRecording();
+				if (!startRecording()) {
+					File lastFile = new File(lastFileName);
+					if (lastFile.exists()) {
+						lastFile.delete();
+					}
+
+					stopRecording(true);
+					return;
+				}
 
 				recording = true;
 				myButton.setText(getString(R.string.stop));
@@ -450,6 +479,7 @@ public class CarcamActivity extends Activity implements MediaRecorder.OnInfoList
 		}
 
 		String outputFile = getOutputMediaFile().toString();
+		lastFileName = outputFile;
 		Log.log("Output file: '" + outputFile + "'");
 		mediaRecorder.setOutputFile(outputFile);
 		mediaRecorder.setMaxDuration(settings.getMaxLength());
