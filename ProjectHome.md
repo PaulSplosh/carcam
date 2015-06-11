@@ -1,0 +1,1 @@
+Simple camera app to continuously record video and GPS tracks.
